@@ -8,16 +8,16 @@ class Neuron:
         self.epoch = 0
 
     def relu(self, val):
-        return max(0, val)
+        return max(0.1, val)
     
     def get_soma(self, inputs):
         return sum(w * i for w, i in zip(self.w, inputs)) + self.b
     
     def dE_dOut(self, target, actual):
-        return 2 * (actual - target)
+        return actual - target
     
     def dOut_dNet(self): 
-        return 1 if self.out_net > 0 else 0
+        return 1 if self.out_net >= 0 else 0
     
     def gradient_descent(self, old_weight, learning_rate, d_error_weight):
         return old_weight - (learning_rate * d_error_weight)
@@ -35,6 +35,8 @@ class Neuron:
         new_weights = []
         
         # weight derivative
+        # print("Weight: ", self.w)
+        # print("Inputs: ", inputs)
         for idx, dNet_dW in enumerate(inputs):
             dE_dW = dNet_dW * dE_dOut * dOut_dNet
             new_weight = self.gradient_descent(self.w[idx], learning_rate, dE_dW)

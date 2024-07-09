@@ -10,18 +10,18 @@ class ANN:
         
         self.hidden_layer_neurons = []
 
-        for idx in range(self.neuron_count):
+        if biases != None:
+            self.output_neuron = Neuron(weights=weights[0], bias=biases[0])
+        else:
+            self.output_neuron = Neuron(weights=ANN.get_random_weights(self.neuron_count), bias=ANN.get_random_bias(self.neuron_count))
+
+
+        for idx in range(1, self.neuron_count):
 
             if weights != None:
                 self.hidden_layer_neurons.append(Neuron(weights=weights[idx], bias=biases[idx]))    
             else:
-                self.hidden_layer_neurons.append(Neuron(weights=ANN.get_random_weights(self.fan_in), bias=ANN.get_random_bias(self.fan_in)))    
-
-
-        if biases != None:
-            self.output_neuron = Neuron(weights=weights[-1], bias=biases[-1])
-        else:
-            self.output_neuron = Neuron(weights=ANN.get_random_weights(self.fan_in), bias=ANN.get_random_bias(self.fan_in))
+                self.hidden_layer_neurons.append(Neuron(weights=ANN.get_random_weights(self.fan_in), bias=ANN.get_random_bias(self.neuron_count)))    
 
     @classmethod
     def get_random_weights(cls, input_count):
@@ -83,35 +83,37 @@ class ANN:
                 [output] = self.forward_pass(net_outputs, [self.output_neuron])
                 outputs.append(output)
 
-                if (outputs.count(0)):
-                    print("Vanishing gradient. Stopping.")
-                    epoch = max_epoch
+                # if (outputs.count(0)):
+                    # print("Vanishing gradient. Stopping.")
+                    # epoch = max_epoch
 
                 net_ws, net_bs = self.backward_pass(net_outputs, output, target, [self.output_neuron], learning_rate)
                 final_ws.append(net_ws)
                 final_bs.append(net_bs)
 
-                for idx, (net, neuron) in enumerate(zip(net_outputs, self.hidden_layer_neurons)):
+                for net, neuron in zip(net_outputs, self.hidden_layer_neurons):
                     out_ws, out_b = self.backward_pass(inputs, net, target, [neuron], learning_rate)
-                    final_ws.insert(idx, out_ws)
-                    final_bs.insert(idx, out_b)
+                    final_ws.append(out_ws)
+                    final_bs.append(out_b)
 
             mse = sum(0.5 * (output - target)**2 for output, target in zip(outputs, all_targets))
 
-            # print(f"Epoch: {epoch}, MSE: {mse},  Outputs: {outputs}")
+            print(f"Epoch: {epoch}, MSE: {mse},  Outputs: {outputs}")
+            # print(f"Final Weights: {final_ws}\nFinal Bias: {final_bs}")
 
             if (mse <= error_tolerance):
                 print("Done")
-                print(f"Final Weights: {final_ws}, Final Bias: {final_bs}")
                 break
             else:
                 epoch += 1
     
         print(f"Epoch: {epoch}, MSE: {mse},  Outputs: {outputs}")
+
         print(f"Final Weights: {final_ws}\nFinal Bias: {final_bs}")
+        return final_ws, final_bs
         # print(len(final_ws[2]), len(final_bs[2]))
 
-    def infer(self, val: list):
+    def test(self, val: list):
         if len(val) != self.fan_in:
             raise ValueError("Invalid input size")
         
