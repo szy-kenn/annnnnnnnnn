@@ -15,8 +15,7 @@ class ANN:
         else:
             self.output_neuron = Neuron(weights=ANN.get_random_weights(self.neuron_count), bias=ANN.get_random_bias(self.neuron_count))
 
-
-        for idx in range(1, self.neuron_count):
+        for idx in range(1, self.neuron_count+1):
 
             if weights != None:
                 self.hidden_layer_neurons.append(Neuron(weights=weights[idx], bias=biases[idx]))    
@@ -47,17 +46,17 @@ class ANN:
 
         return outputs
 
-    def backward_pass(self, inputs, output, target, neurons, learning_rate):
+    def backward_pass(self, inputs, output, target, net_hidden=None, net_hidden_outputs=None, *, neurons, learning_rate):
 
         new_ws = []
         new_bs = []
 
         for neuron in neurons:
-            new_weights, bias = neuron.backward_pass(inputs, output, target, learning_rate)
+            new_weights, bias = neuron.backward_pass(inputs, output, target, net_hidden, net_hidden_outputs, learning_rate=learning_rate)
             neuron.w = new_weights
             neuron.b = bias
             
-            if len(neurons):
+            if len(neurons) == 1:
                 new_ws = new_weights
                 new_bs = bias
             else:
@@ -77,28 +76,28 @@ class ANN:
             final_bs = []
 
             for inputs, target in zip(all_inputs, all_targets):
-                final_ws.clear()
-                final_bs.clear()
-                net_outputs = self.forward_pass(inputs, self.hidden_layer_neurons)
-                [output] = self.forward_pass(net_outputs, [self.output_neuron])
+                final_ws = []
+                final_bs = []
+                net_hidden_outputs = self.forward_pass(inputs, self.hidden_layer_neurons)
+                [output] = self.forward_pass(net_hidden_outputs, [self.output_neuron])
                 outputs.append(output)
 
-                # if (outputs.count(0)):
-                    # print("Vanishing gradient. Stopping.")
-                    # epoch = max_epoch
-
-                net_ws, net_bs = self.backward_pass(net_outputs, output, target, [self.output_neuron], learning_rate)
+                net_ws, net_bs = self.backward_pass(net_hidden_outputs, output, target, neurons=[self.output_neuron], learning_rate=learning_rate)
                 final_ws.append(net_ws)
                 final_bs.append(net_bs)
 
-                for net, neuron in zip(net_outputs, self.hidden_layer_neurons):
-                    out_ws, out_b = self.backward_pass(inputs, net, target, [neuron], learning_rate)
+                for net_hidden, neuron in zip(net_hidden_outputs, self.hidden_layer_neurons):
+                    out_ws, out_b = self.backward_pass(inputs, output, target, net_hidden, net_hidden_outputs, neurons=[neuron], learning_rate=learning_rate)
                     final_ws.append(out_ws)
                     final_bs.append(out_b)
 
-            mse = sum(0.5 * (output - target)**2 for output, target in zip(outputs, all_targets))
+            mse = sum(0.5 * (target - output)**2 for output, target in zip(outputs, all_targets))
 
-            print(f"Epoch: {epoch}, MSE: {mse},  Outputs: {outputs}")
+            if epoch % 1000 == 0:
+                print(f"Epoch: {epoch} \t MSE: {mse}")
+                # print(f"Epoch: {epoch} \t MSE: {mse} \nOutputs: {outputs}")
+            # print(f"Epoch: {epoch}")
+            # print(f"Epoch: {epoch}, MSE: {mse},  Outputs: {outputs}")
             # print(f"Final Weights: {final_ws}\nFinal Bias: {final_bs}")
 
             if (mse <= error_tolerance):
